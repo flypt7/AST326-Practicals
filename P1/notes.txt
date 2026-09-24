@@ -1,0 +1,40 @@
+we have monochrome cmos
+
+4.21
+without cap
+lowest shutter - mean 53.9 (sd 7.7), one peak
+increase shutter = brighter values, more spread out, multiple peaks. some pixels get saturated at high (0.02s) shutter speed pointed at blend of desk and chair
+max value 255
+
+KEPT SHUTTER AT 0.02 FROM THAT POINT
+
+4.22
+min frame 6.90518 - couple brighter bins but still really low - max shutter 0.27
+increasing rate makes darker
+max 45.632 - max shutter 0.02
+
+mean value vs exposure -> 15.9 (min) to 10.5 (max)
+
+auto - few but noticeable bright pixels, get brighter with lower framerate
+
+4.23
+used back of chair
+F/1.4: mean 221, sd 24.4
+F/C:   mean 54.5 sd 8.1
+
+poisson distribution affected by f -> smaller (1.4) = higher mean, bigger (c) = lower mean
+
+non-uniform
+spread, multiple peaks because of non-uniformity
+F/1.4: very bright (26% sat), undiscernable details
+decrease = dimmer, start to decipher details
+F/C or 8: very dark, undiscernable details
+
+-----
+LAB 2
+-----
+4.2.4
+
+
+
+4.2.5
