@@ -15,7 +15,7 @@ To use the .ipynb files, drop them into Jupyter and they should work just fine!
 For the LaTeX files, I would recommend using [Overleaf](https://www.overleaf.com/home). Create an account/log in, and 
 create a new project from .zip - just drop the `report_template.zip` folder into the website, and it should load up!
 
-As far at writing in LaTeX, Overleaf has [a pretty good 
+As far as writing in LaTeX, Overleaf has [a pretty good 
 tutorial](https://www.overleaf.com/learn/latex/Learn_LaTeX_in_30_minutes), although AASTeX might have some specific
 things defined too, which you can check out on [the AASTeX v7 guide](https://journals.aas.org/aastexguide/).
 
