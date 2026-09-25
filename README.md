@@ -6,13 +6,18 @@ Directory organization, per practical:
 - `slides` contains the in-class presentation slides.
 - `src` contains all data from the lab handout, as well as practical recorded data.
 The name of each subdirectory is the number of the activity corresponding to that data. 
-- `tex` contains a basic AASTeX template for report writing.
+- `tex` can be used to store your LaTeX file and the PDF it makes (if you're using Overleaf you probably won't need 
+this at all).
 - The root directory of the practical also contains practical notes, and the lab handout.
 
 To use the .ipynb files, drop them into Jupyter and they should work just fine!
 
-For the LaTeX files, I would recommend using Overleaf. If it complains when you try to compile, change the very first 
-line to `\documentclass[report]{aastex}`.
+For the LaTeX files, I would recommend using [Overleaf](https://www.overleaf.com/home). Create an account/log in, and 
+create a new project from .zip - just drop the `report_template.zip` folder into the website, and it should load up!
+
+As far at writing in LaTeX, Overleaf has [a pretty good 
+tutorial](https://www.overleaf.com/learn/latex/Learn_LaTeX_in_30_minutes), although AASTeX might have some specific
+things defined too, which you can check out on [the AASTeX v7 guide](https://journals.aas.org/aastexguide/).
 
 Using GitHub
 -
