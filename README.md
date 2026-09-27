@@ -1,7 +1,7 @@
 AST326-Practicals Repository
 -
 
-hello world 
+goodbye world
 
 Directory organization, per practical:
 - `code` contains Python/Jupyter scripts.
