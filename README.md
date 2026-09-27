@@ -1,7 +1,7 @@
 AST326-Practicals Repository
 -
 
-hello world 
+This is Luna's branch :3 
 
 Directory organization, per practical:
 - `code` contains Python/Jupyter scripts.
