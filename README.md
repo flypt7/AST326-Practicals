@@ -1,6 +1,8 @@
 AST326-Practicals Repository
 -
 
+hello world 
+
 Directory organization, per practical:
 - `code` contains Python/Jupyter scripts.
 - `slides` contains the in-class presentation slides.
