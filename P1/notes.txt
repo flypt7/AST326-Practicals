@@ -38,3 +38,17 @@ LAB 2
 
 
 4.2.5
+
+
+4.2.1 AGAIN
+
+The max value is 255
+the saturated percentage started increasing about a third of the way
+from the max value of the shutter until it reached 60% at the max value of the shutter
+for an 8-bit camera its still 255
+
+
+4.2.3 AGAIN
+
+
+
