@@ -1,0 +1,22 @@
+AST325/326 Lab 1 acquisition
+timestamp   : 2026-10-01T18:30:45.882363-04:00
+camera      : Point Grey Research Firefly MV FMVU-03MTM
+GUID        : 0x00B09D0100B9DB20
+mode        : 752x480 MONO8 FORMAT7
+frames      : 5
+auto controls: OFF
+sensor      : monochrome
+pixels saved: all
+image size  : 752 x 480 pixels
+
+settings as read back from the camera:
+  brightness   = 146 (raw)
+  exposure     = 7 (raw)
+  frame_rate   = 30.0004 fps
+  gain         = 12.0412 dB
+  gamma        = 0 (raw)
+  shutter      = 0.0249969 s
+  trigger      = 0 (raw)
+  trigger_delay = 0 
+
+frame means: mean=6.153 std=4.987 min=0.044 max=10.245
