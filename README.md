@@ -1,18 +1,18 @@
 AST326-Practicals Repository
 -
 
-hello world 
-
 Directory organization, per practical:
-- `code` contains Python/Jupyter scripts.
+- `code` contains Python/Jupyter scripts, as well as data used to perform calcualtions/processing. 
+Separated by handout part.
+- `materials` contains the lab handout as well as any additional documents linked within the handout.
+- `notes` contains notes taken in lab, separated by week/session.
 - `slides` contains the in-class presentation slides.
-- `src` contains all data from the lab handout, as well as practical recorded data.
-The name of each subdirectory is the number of the activity corresponding to that data. 
 - `tex` can be used to store your LaTeX file and the PDF it makes (if you're using Overleaf you probably won't need 
 this at all).
 - The root directory of the practical also contains practical notes, and the lab handout.
 
-To use the .ipynb files, drop them into Jupyter and they should work just fine!
+To use the code in this repository, copy the entire `code` directory (or any specific handout part directory you want
+to test) into JupyterHub, and the code should run fine immediately.
 
 For the LaTeX files, I would recommend using [Overleaf](https://www.overleaf.com/home). Create an account/log in, and 
 create a new project from .zip - just drop the `report_template.zip` folder into the website, and it should load up!
@@ -82,5 +82,28 @@ If you want, all of this can also be done in a terminal! The steps are as follow
 Adding is **staging** the changes, a **commit** makes GitHub aware that there's modifications you've made, and 
 **pushing** makes these changes on GitHub.
 
-And that's about it! I'm sorry if this isn't super clear, we can have a look at setting up everything next time we see 
-each other :)
+Receiving changes from GitHub
+-
+
+This repository's main branch will often be updated with global progress (starter files, recorded data, etc.). However,
+these changes won't show up immediately on your computer just because they're on GitHub!
+
+To update your local copy of the repository, there's a few steps to follow. First, you can't pull changes if you have
+staged changes on the branch. You will need to temporarily **stash** your changes by doing as follows:
+
+<code>git stash</code>
+
+Second, you need to make sure that your current branch is linked to the main branch. If on any other branch but main, 
+you will have to run the following:
+
+<code>git branch --set-upstream-origin-to origin/main </code>
+
+Then, you can simply **pull** the changes:
+
+<code>git pull</code>
+
+Finally, if you stashed changes, you can bring them back by running the following:
+
+<code>git stash pop</code>
+
+And there you have it! Your branch is now up to date with the new changes made on the main branch :)
