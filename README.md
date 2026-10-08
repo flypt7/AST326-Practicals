@@ -11,6 +11,10 @@ Separated by handout part.
 this at all).
 - The root directory of the practical also contains practical notes, and the lab handout.
 
+Note: P1 has a very different format based on the original organization of the repository. It is kept this way as
+the data is no longer needed, and changes would be complicated with everyone already having made their own changes on
+their own branches. All practicals from P2 onward use the organization above.
+
 To use the code in this repository, copy the entire `code` directory (or any specific handout part directory you want
 to test) into JupyterHub, and the code should run fine immediately.
 
