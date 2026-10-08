@@ -1,0 +1,4 @@
+completed 3.1.1 data measurements (see P2/code/311)
+took pictures of setups, and screen captures of initial measurements of hydrogen at 100ms and mystery241 at 100ms(?)
+    screen captures are in the same directory as this file
+    TODO: photos should be added here too!
