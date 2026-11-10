@@ -1,0 +1,573 @@
+\documentclass[twocolumn]{aastex702}
+
+\usepackage{minted}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{amsmath}
+\usepackage[toc,page]{appendix}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage[dvipsnames]{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+    citecolor=blue,
+}
+
+% extra packages that help with table formatting, scientific notation and bib formatting
+\usepackage{booktabs}
+\renewcommand{\arraystretch}{1}
+\usepackage{siunitx}
+\usepackage{natbib}
+\bibliographystyle{apj}
+
+\begin{document}
+
+\title{AST326Y1 Practical 1 Report: Basic Photon Statistics}
+
+\author{Luna Sarrazin}
+\affiliation{AST326Y1 2026-2027 Group H, University of Toronto}
+\email[show]{thomas.sarrazin@mail.utoronto.ca}
+
+\author{Ömer Can Caner}
+\affiliation{AST326Y1 2026-2027 Group H, University of Toronto}
+\email{omer.caner@mail.utoronto.ca}
+
+\author{Guillaume Lamotte}
+\affiliation{AST326Y1 2026-2027 Group H, University of Toronto}
+\email{guillaume.lamotte@mail.utoronto.ca}
+
+\author{Cooper Lewis}
+\affiliation{AST326Y1 2026-2027 Group H, University of Toronto}
+\email{cooper.lewis@mail.utoronto.ca}
+
+	\begin{abstract}
+		This lab is split into two parts. First, we use a USB650 spectrograph and OceanView software to record and compare spectra of Hydrogen, Mystery 215, Mystery 241, incandescent, sunlight, and fluorescent sources. We dark-subtract all frames and use the Hydrogen dark-subtracted frames to calibrate the spectrograph using Balmer Series lines with linear and quadratic fits. We then use this calibration to identify Mystery 215 and Mystery 241 as Helium and Krypton respectively through their spectra's peaks, and linearly recalibrate the spectrograph with these new peaks to obtain a similar result to Hydrogen-only calibration. Second, we use the 10-inch telescope at the Burton Tower with a LISA spectrograph to record and analyze spectra from Vega, Caph, the Sun (via the Moon), Aljanah, and Scheat. This involves dark-and-sky-subtraction and division by a median-normalized dark-subtracted flat frame, and collapse of the 2D image into a 1D spectrum. We convert pixel values to wavelength by calibration with Ne/Ar peaks. We plot our calibrated spectra and notice Hydrogen absorption lines in AFGK stars, while the M star presents few noticeable features. Measured Hydrogen lines are far from their expected wavelength. We underestimate Vega's temperature by 2000K and overestimate all other stars' temperatures by up to 2500K using Wien's displacement Law. Both absorption line and temperature discrepancies are likely caused by inaccurate calibration.
+	\end{abstract}
+
+	\section{Introduction}\label{sec:intro}
+
+		With Lab 1 introducing us to CCD and CMOS technologies, we now expand our scope to cover their applications in spectroscopy. Indeed, these sensors are used in spectrometers to identify the wavelengths of light emitted and/or reflected by a light source. 
+		Spectroscopy is a fundamental part of observational astronomy, with many applications depending on the methods used to analyze the produced spectrometer images.
+		
+		The University of Toronto offers us the opportunity to measure our own spectroscopic data of a variety of sources, using a 10-inch telescope located in Burton Tower (McLennan Physical Laboratories). This lab is performed in two parts: becoming versed in using a spectrometer using a simpler, indoor model, with some example and mystery sources; and using the telescope to uncover the spectra of our chosen sources. Spectra can be used to determine the processes and materials contained within an object, which will be the main objective of the first part with the mystery sources, and to apply these skills to real spectrum data from stars we measure ourselves.
+		
+		The first part is performed using the USB650 spectrograph with the OceanView software. This spectrograph is an array of 651 CCD sensors, detecting light in the 350-1000nm range. In the second, the 10-inch telescope is appended with a LISA spectrograph, which reads spectroscopic data through a slit and diffracts the light to a 2D-array of sensors. The images received are in pixels (as opposed to wavelength), and need to be converted to wavelength for proper analysis.
+		
+		In both cases, our measurements of the light sources are called science frames. These science frames need to be corrected for occurrences such as hot pixels and dark current by subtracting a ambient/dark frame, where the source is turned off with the USB650 spectrograph and the cap is put on the telescope for the LISA spectrograph. After this, telescope data also needs to be divided by a median-normalized and dark-subtracted flat frame, which is a measures of a tungsten lamp located directly inside the spectrograph. This flat frame removes the pixel-to-pixel sensitivity of the spectrograph. These two formulae are as follows:
+			\begin{equation}\label{eq:DS-USB650}
+				F_{DS} = F_S - F_D
+			\end{equation}
+			for the USB650 spectrograph, where $F_{DS}$ is the dark-subtracted (final) frame, and $F_S$ and $F_D$ are the science and dark frames; and
+			\begin{equation}
+				F_{DSF} = \frac{F_S - F_{D0}}{(F_F - F_{D1}) / \text{med}(F_F - F_{D1})}
+			\end{equation}
+			for the LISA spectrograph, where $F_{DSF}$ is our dark-subtracted and flattened science frame, $F_F$ is our flat frame, and $F_{D0}$ and $F_{D1}$ are dark frames respectively matching the exposure times of $F_S$ and $F_F$. Dark frames must always have the same exposure time as the frame they are subtracted from.
+			
+			The LISA spectrograph target objects will be stars and the Moon, meaning that we can expect blackbody radiation. This also means that we can calculate the temperature of each object we observe using Wien's displacement law, which relates the peak wavelength of an object's spectrum ($\lambda_{max}$, in Å) to its temperature ($T$, in Kelvin) as follows:
+			\begin{equation}\label{eq:wien}
+				T = \frac{2.9 \cdot 10^7}{\lambda_{max}}
+			\end{equation}
+		
+			We also perform calibration for both spectrographs, which is done by taking a spectrum of a gas lamp with known discrete emission lines, and plotting these known peaks against their pixel location in the spetrograph's spectrum. For this, we have to locate the peaks in the spectrum using \texttt{scipy.signal.find\_peaks}, and approximate the location of the peak using a weighted average based on the signal intensity at a certain number of pixels around the peak pixel. This weighted average is the centroid of the peak, with the following formula:
+			\begin{equation}\label{eq:centroid}
+  			\text{centroid} = \frac{\sum_{i=\text{peak} - \text{around}}^{\text{peak} + \text{around}}\text{spectrum}_i \cdot \text{pixel}_i}{\sum_{i=\text{peak} - \text{around}}^{\text{peak} + \text{around}} \text{spectrum}_i}
+  		\end{equation}
+  		
+  		Where spectrum$_i$ is the intensity of the spectrum at pixel$_i$, peak is the pixel location of the peak, and around is the number of pixels to consider around the peak index (we set this value to 5, unless there are other peaks closer nearby).
+  		
+  		The resolving power (R) of a spectrograph is a measure of how close two separate peaks' wavelengths can be before they are detected as a singular peak by the spectrograph. This value is calculated as follows:
+  		\begin{equation}\label{eq:R}
+  			R = \lambda / \Delta\lambda
+  		\end{equation}
+  		
+  		where $\lambda$ is the wavelength of the peak, and $\Delta\lambda$ is the difference in wavelength between the two peaks. This can aid to determine how precise the spectrograph is in a local region (since R also depends on the wavelength of the peak; other wavelength locations might have different R values even within 1 spectrum).
+		
+		We report our observations and raw data in Section \ref{sec:obs}. The data reduction we perform on it is detailed in Section \ref{sec:reduc}, and is followed by the analysis of our reduced data in Section \ref{sec:anal}. Finally, we discuss our results in Section \ref{sec:disc}.
+
+  \section{Observations \& Data}\label{sec:obs}
+
+		\subsection{USB650 Data Collection}\label{ssec:USB650-data}
+		
+			This lab begins with recording and plotting spectra from a variety of light sources: a hydrogen tube light, an incandescent bulb, a fluorescent strip light, sunlight, and mystery tube lights to identify from their spectra alone. We use the USB650 spectrograph, with which we can plot the spectra of our sources by reading the data files saved in OceanView, reading the magnitude recorded by each pixel in ADU, and plotting these magnitudes against pixel.
+						
+			It is particularly important to ensure that the USB650 stays in place while recording data. To do so, we decide to fit the detector cable into tight holes in the packaging foam at at least 2 points. For the tube lights, the foam is set horizontally, and for the other lights (except sunlight) vertically. For sunlight, we decide to not use the packaging foam as we decide to record data outside. We record at least 5 measurements for each source, and at least 5 noise measurements with the light turned off. We do not record noise data for sunlight, as this would require pointing the sensor at another source than the sky which would create more inconsistencies.
+		
+			We record measurements using the OceanView application, which detects the sensor and gives live feedback on the detected spectrum. We set the exposure time such that our highest peaks reach above 1000 ADU but below 4000 ADU to ensure a strong signal-to-noise ratio (S/N) while avoiding saturation. These exposure times are specified for each source in Table~\ref{tab:exposures}. To save the data, we press the save button and immediately move the recordings for one source to a new directory to avoid mixing up data files. 
+			\begin{deluxetable}{c|ccc}[t]
+				\tablecaption{Exposure time and number of data and noise measurements for each light source.
+				\label{tab:exposures}}
+				\tablehead{
+				\colhead{\textbf{Source}} \vline & \colhead{\textbf{Exposure}} & \colhead{\textbf{Data count}} & \colhead{\textbf{Noise count}}
+				}
+				\startdata
+				\textbf{Hydrogen} 				& 	8ms 			& 	6 		& 	5 		\\
+				\textbf{Mystery 215} 		& 	125ms 		& 	5 		& 	5 		\\
+				\textbf{Mystery 241} 		& 	35ms 			& 	5 		& 	5 		\\
+				\textbf{Incandescent} 		& 	10ms 			& 	10 		& 	10 		\\
+				\textbf{Fluorescent} 		& 	150ms 		& 	10 		& 	10 		\\
+				\textbf{Sunlight} 				& 	1s 				& 	5 		& 	None 	\\
+				\enddata
+			\end{deluxetable}	
+		\subsection{Telescope Observation Plan and Log}\label{ssec:telescope-obs}
+			
+			We then use the 10-inch telescope at the Burton Tower to obtain spectra from a variety of sources, on October 20 between 19:30 and 21:00 EDT. Our original observation plan is presented in Figure~\ref{tab:obs-plan}, which contains the type of each object, the object's name, its right ascension and declination, our estimated observation time, the appxorimate altitude of the object at that time, the exposure time, and estimated airmass. We also include backup targets in case the originally planned ones do not succeed.
+			
+			\begin{figure*}
+				\plotone{obs-plan.png}
+				\caption{Observation Plan for Telescope Measurements on Oct. 20, 19:30-21:00.}
+				\label{tab:obs-plan}
+			\end{figure*}
+			
+			This plan was originally drafted by checking for the presence of a variety of objects from Tables A1 and A2 in the handout using the NOT skyplot website,\footnote{\href{https://www.not.iac.es/observing/forms/visibility/}{https://www.not.iac.es/observing/forms/visibility/}} and selecting stars in different classes (one per class to the exception of G as that would have been too many targets in our allotted time) and a special object from handout Table A2. This original plan estimates targets taking approximately 10 minutes each.
+
+			\begin{figure*}
+				\plotone{obs-log.png}
+				\caption{Observation Log of Telescope Measurements on Oct. 20, 19:30-21:00.}
+				\label{tab:obs-log}
+			\end{figure*}
+			
+			Figure~\ref{tab:obs-log} presents our telescope data log, including the objects we actually observed on our night with right ascension and declination, time of observation (EDT, Oct. 20), altitude, exposure time, airmass, and sky conditions. This log is significantly different from our original plan, because of some oversights and slight mistakes. These are detailed in Section~\ref{ssec:telescope-disc}.
+			
+  \section{Data Reduction \& Methods}\label{sec:reduc}
+
+		\subsection{USB650 File Management}\label{ssec:USB650-files}
+		
+			For all light sources, the files created by OceanView contain 13 lines of metadata before beginning with the data as tab-separated wavelength (nm) and intensity (ADU). Files are read from within a directory split into 2 directories: one for data, one for noise. Both subdirectories contain \texttt{files.txt}, a text file created by ourselves containing all filenames of spectra files. We iterate through each filename to load all their data at the same time as 1-dimensional \texttt{NumPy} arrays.
+			
+			To calibrate the spectrograph, we use our Hydrogen spectrum measurements and average them with \texttt{numpy.mean}, which increases our S/N ratio and allows us to find the standard deviation at each point (using \texttt{numpy.std}). We average the noise spectra made with the same scene and exposure time, and subtract them from the Hydrogen average spectrum using Equation~\ref{eq:DS-USB650}. We also propagate errors from the average noise frame with the following formula:
+			\begin{equation}
+				\sigma_{D-N} = \sqrt{\sigma_D^2 + \sigma_N^2}
+			\end{equation}
+			
+			Where $\sigma_D$, $\sigma_N$, $\sigma_{D-N}$ are the standard deviations of the data, noise, and the difference between the two. This is applied at each point.
+			
+		\subsection{USB650 Spectra}\label{ssec:USB650-cal}
+			
+			\begin{figure}
+				\plotone{31-spectra-med.png}
+				\caption{Spectra of various lights in the 350-1000nm range as automatically calibrated by the USB650 device. Errors of $\sigma$ are overplotted for each graph.}
+				\label{fig:31-spectra}
+			\end{figure}
+			
+			We plot the spectra measurements from Table~\ref{tab:exposures} in Figure~\ref{fig:31-spectra}, with uncertainties of $\sigma_{D-N}$ overplotted for each point in each plot. The uncertainties for Hydrogen, Mystery 215, Mystery 241, and the incandescent bulb are almost entirely smaller than the graph. The code for this is included in the GitHub repository under the main branch,\footnote{\texttt{\href{https://github.com/flypt7/AST326-Practicals}{https://github.com/flypt7/AST326-Practicals}}} as \texttt{P2/code/31/plot\_all.png}. Note that the wavelengths given were automatically calibrated by the USB650 device; we will make calculate own calibration in Section~\ref{sec:anal}.
+			
+			From these plots, we can identify different types of sources: Hydrogen and the mystery lamps act as discrete light sources, with peaks at very specific wavelengths and an otherwise near-zero spectrum. The incandescent lamp and sunlight behave as continuous light sources. Sunlight does however show some strong troughs at moderately specific wavelengths, which could be the absorption lines of the Sun and sky: we notice troughs from the Balmer Series (Hydrogen lines), and the strong trough near 760nm is most likely due to O$_2$ in the atmosphere. The fluorescent strip light seems to act as an intermediate: some specific peaks are visible, but we can also notice some continuity in some segments (such as in the 480-510nm range).
+			
+			It can be noted as well that the USB650 spectrograph detects light in the 350-1000nm range, with CCD sensors typically having lower detection rates for wavelengths near 1000nm.
+			
+			We notice some recognizable peaks in the Hydrogen spectrum: the peaks below 700nm are from the Balmer series, with H$\alpha$ being the strongest peak. We also have some additional peaks in that spectrum in the 750-850nm range, which is outside of the series of Hydrogen and most likely due to oxygen in the tube: tube lights are not perfectly pure, so it is possible that some oxygen is present in it and contributed to the spectrum, which would also explain why other tube lights have different prominences of these peaks (as they have different levels of purity).
+			
+		\subsection{USB650 Calibration}\label{ssec:USB650-cal}
+			
+			While the USB650 device has an automatic calibration system, this calibration may need to change over time through the spectrograph's use. We will be focusing on our Hydrogen spectrum to identify the pixels corresponding to known Hydrogen peaks, and perform our own calibration with this.
+			
+			The USB650 spectrograph detects light in the 350-1000nm range, and its CCD sensors detect light near 1000nm weakly compared to lower wavelengths. We are working with known wavelengths of Hydrogen in air, as measurements are made within a room.
+			
+			Thus, we now have to select which line series to look for. We will not be considering the Lyman series (UV, upper bound at 121.6nm) nor the Paschen series (mostly IR, extremely faint below 1000nm). All other series (Brackett, Pfund, Humphreys) are far above the spectrograph's range and cannot be detected.
+			
+			So, we are looking for lines in the Balmer series. These include H$\alpha$ (656.27nm, strongest), H$\beta$ (486.13nm, strong), H$\gamma$ (434.05nm, faint), and H$\delta$ (410.17nm, faintest). These wavelengths are retrieved from the \href{https://physics.nist.gov/PhysRefData/ASD/lines_form.html}{NIST Atomic Spectra Database}. Balmer peaks at lower wavelengths are too faint to be detected.
+			
+			Then, we can find the index of the expected peaks on the Hydrogen spectrum. The USB650 device only measures with nm accuracy, but our expected wavelengths are non-integer, meaning that finding the index with the highest value does not equate to approximating the location of the peak. To do so, once each peak is found, we estimate the location of the peak by fitting a Gaussian distribution to the 20 points around the peak (10 points on each side) using \texttt{scipy.optimize.curve\_fit}. This allows us to get a decimal ``index'' at which the peak should approximately be, as well as the intensity of the peak as a sanity check (we know that H$\alpha$ through H$\delta$ decrease in intensity). The code for this fitting, as well as the output graph for all four peaks, is presented in Appendix~\ref{code:gauss}. \texttt{scipy.optimize.curve\_fit} also returns a covariance matrix of the function parameters, which acts as a second sanity check and an opportunity to calculate uncertainties for the fits as the diagonal elements of the matrix are the variances ($\sigma^2$) of each parameter.
+			
+			Then, we can plot the expected H$\alpha-\delta$ wavelengths above as a function of the Gaussian distribution peak locations, and find a calibration function by performing a second curve fit (with \texttt{scipy.optimize.curve\_fit}). We attempt to use first and second order polynomials (linear and quadratic) as our calibration functions, and determine which one is most appropriate by calculating individual residuals and the sum of absolute residuals.
+		
+			Gaussian fitting yields strong results for all peaks except H$\delta$, which we suspect is because of the faintness of the line, whose peak is barely over the noise in our plot. We solve this by omitting indices 59 and 62, which abruptly fall to 0 and cause our fitting to fail. This results in a stronger fit with a much more reasonable covariance matrix, but a potentially less accurate peak. %Figure~\ref{fig:31-H-peaks} presents the peaks found when omitting indices 59 and 62 in the H$\delta$ peak.
+			
+			%\begin{figure*}
+			%	\plotone{H_peaks.png}
+			%	\caption{Peak index Gaussian estimates for the four main Balmer series lines.}
+			%	\label{fig:31-H-peaks}
+			%\end{figure*}
+			
+			With that, we plot the expected wavelength over our estimated peak index, and perform two curve fit methods: a linear least-squares (implemented by ourselves in Lab 1), and a quadratic least-squares (using \texttt{numpy.polyfit}). We also bear in mind the weakness of our H$\delta$ estimate, so we will attempt to fit a curve both with and without it. Note however that the quadratic fit will have a unique solution that passes through our H$\alpha$, H$\beta$, and H$\gamma$ estimations, and that this gives zero residuals.
+						
+			\begin{figure}
+				\plotone{H_residuals.png}
+				\caption{Calibration of the USB650 device using Hydrogen peaks. The top plot shows the expected wavelength from the Balmer series against our Gaussian-estimated pixel location, using linear and quadratic fit functions. The bottom plot shows the residuals of individual points using each function.}
+				\label{fig:31-H-residuals}
+			\end{figure}
+			
+			Figure~\ref{fig:31-H-residuals} presents the different curve fit functions on the expected wavelength versus pixel position plot, and the residuals of each point with all curve fit functions. The quadratic 3-point fit has 0 covariance, as n-order polynomials have a unique solution for n+1 points. However, this fit is perhaps not as strong a fit as the linear 4-point, which covers an additional range of wavelengths below 434nm. The equations of both linear fits are as follows:
+			\begin{equation}\label{eq:31-cal-H3}
+				L_{3pt} = (0.9996 \pm 0.0002) x + 350.0211 \pm 0.0305
+			\end{equation}
+			\begin{equation}\label{eq:31-cal-H4}
+				L_{4pt} = (0.9991 \pm 0.0007) x + 350.1668 \pm 0.1182
+			\end{equation}
+			\begin{equation}\label{eq:31-cal-Hq3}
+			\begin{split}
+				Q_{4pt} & = (1.47 \cdot 10^{-5} \pm 9.98 \cdot 10^{-6}) x^2 \\
+				& + (0.9935 \pm 0.0038) x \\
+				& + 350.5310 \pm 0.2676
+			\end{split}
+			\end{equation}
+			\begin{equation}\label{eq:31-cal-Hq3}
+				Q_{3pt} = 3.6 \cdot 10^{-6} x^2 + 0.9982 x + 350.1334
+			\end{equation}
+			
+			Note that the 3-point quadratic fit does not have errors as a 2nd order polynomial has a unique solution to fit 3 points. We also notice that the quadratic terms in both $Q_{4pt}$ and $Q_{3pt}$ are very low and (for $Q_{4pt}$) have high error, so we will only focus on linear fits, which also seem to make more sense given the shape of the plot. The difference between the two fits is minimal, but the standard errors (obtained from the square root of the diagonal entries of the covariance matrix from \texttt{numpy.polyfit}) for the 3-point fit are lower, so we continue with the linear 3-point fit.
+		
+		\subsection{LISA Spectrograph Calibration}\label{ssec:telescope-cal}
+		
+			Similar to the USB650 device, the LISA spectrograph appended to our telescope requires calibration, as it only returns pixel locations (as opposed to wavelengths). The spectrograph comes bundled with a Neon-Argon (Ne/Ar) lamp, which we can use for our calibration.
+			
+			At the telescope, we measure 3 Ne/Ar frames at the same exposure time of 10 seconds, and sum all frames for a better S/N ratio. We then select some pixel bins to estimate the average location of brightness using a Gaussian fit, and then fit these estimated average locations linearly using \texttt{scipy.optimize.curve\_fit} to check how ``straight'' (perpendicular to the y-axis) our measurements are. This is so that the segment of pixels we take remains sufficiently consistent throughout calculations if we obtain very slanted measurements (which move up or down the y-axis).
+			
+			We reduce the plot to a singular dimension by selecting 400 y-pixels with a 200 pixel aperture halfwidth per x-pixel (which may move up or down the y-axis depending on the aforementioned curve fit) and summing them. This allows for a significantly stronger S/N ratio.
+			
+			With that, we then observe the peaks shown in our 1-dimensional Ne/Ar spectrum. We begin by fitting the 3 points given to us as well as the other additional points given in the third week lab: 5852Å, 6678Å, 7032Å, 6074Å, 6069Å, and 6506Å, and repeat this process up to 14 points across the x-pixel range. Each expected wavelength is associated with a peak centroid, which we calculate by finding the peak using \texttt{scipy.signal.find\_peaks}, and then use our in-house centroid method to find the weighted average x-pixel location of the peak (its centroid). The code for this centroid method is explained in Appendix~\ref{code:centroid}.
+			
+			Then, we attempt multiple odd order fits using \texttt{numpy.polyfit} to determine which is most optimal by selecting the one with the lowest standard deviation values (returned by \texttt{numpy.polyfit} as a covariance matrix, of which we take the square root of diagonal entries to find standard deviations). Odd orders were selected as the points seemed to resemble the shape of the scatter plot best. Almost all higher order fits return standard deviation values of at least the same order as their coefficients except the cubic fit, so we continue with a cubic fit.
+			
+			Figure~\ref{fig:near-res} shows our 3rd order polynomial best fit in the top plot including its standard error, as well as individual point residuals in the bottom plot. The root mean square of residuals is equal to 6.117. Our polynomial fit is as follows, with errors:
+			\begin{equation}\label{eq:telescope-fit}
+				\begin{split}
+				P_3 & = (2.08 \cdot 10 ^{-6} \pm 4.64 \cdot 10^{-8}) x^3 \\
+				& - (3.86 \cdot 10^{-3} \pm 8.63 \cdot 10^{-5}) x \\
+				& - (9.18 \cdot 10^{-1} \pm 4.38 \cdot 10^{-2}) x \\
+				& + 7188 \pm 6.59
+				\end{split}
+			\end{equation}
+			
+			Note that we omit indices 1348 and above in our solution. That is because our cubic fit reaches its minimum at that point, and begins increasing after it, making the the plot fold on itself. The wavelength range we cover with this solution is 4029-7188Å. It is also interesting to point out that the wavelegnth conversion is not linear and flattens toward the edges of the plot. That is to be expected, as CCD sensors tend to have this type of behaviour at higher and lower wavelengths.
+		
+			\begin{figure}
+				\plotone{NeAr_residuals.png}
+				\caption{Calibration of the LISA spectrograph using Ne/Ar peaks. The top plot shows the expected wavelength of the Ne/Ar peaks against our centroid-estimated x-pixel peak location, using a cubic polynomial fit. The bottom plot shows the residuals of individual points using each function, and the RMS of residuals.}
+				\label{fig:near-res}
+			\end{figure}
+		
+  \section{Data Analysis \& Modeling}\label{sec:anal}
+			
+		\subsection{Mystery Light Identification}\label{ssec:USB650-mystery}
+		
+			With our spectrograph now manually calibrated, we look at our spectra for the mystery lamps. We plot the data similar to Hydrogen in Section~\ref{ssec:USB650-cal}, and convert the pixel locations to wavelength using our calibration formula. Since these spectra contain many more peaks than Hydrogen, it is faster to use \texttt{scipy.signal.find\_peaks} to identify them. 
+
+			Once we identify the peaks, we perform a centroid calculation; we only need the wavelength location of the peak, not its intensity. The centroid function is implemented in-house, and is used with a range of wavelengths including the peak found using \texttt{scipy.signal.find\_peaks}. This wavelength range contains only values above the typical noise level in this local area of the plot. The code for this method is presented in Appendix~\ref{code:centroid}.
+			
+			We then overplot these centroids on their respective spectra, shown in Figure~\ref{fig:31-mystery}. We use the \href{https://physics.nist.gov/PhysRefData/ASD/lines_form.html}{NIST Atomic Spectra Database} to look for peaks. We know that mystery gases have to be noble gases, and look for the most prominent peaks in our spectra first. We then compare other large peaks in our spectra against the database, and check he database for any wavelength ranges woth many missing peaks in our spectra.
+
+		\begin{figure}
+			\plotone{mysteries.png}
+			\caption{Spectra of mystery gases 215 (top) and 241 (bottom), overplotted with centroid estimated peaks. Both plots use the same legend.}
+			\label{fig:31-mystery}
+		\end{figure}
+			
+			From the peaks that we are observing in Mystery 215, the most likely gas seems to be Helium I: the significantly largest peak is at 587nm, with other peaks at 706nm, 501nm, 388nm, 728nm, 447nm, 471nm, and 492nm.
+			
+			By elimination, Neon I does not seem correct as we would otherwise get significant peaks in the 350-380nm range and around 600nm. Argon I cannot be our gas, as we are missing the many large peaks in the 750-980nm range and the Argon spectrum lacks any of our peaks between 350-750nm. We are missing many peak lines for Krypton I, such as the 810.4nm and 985.6nm ones, alongside others in the 800-850nm range. The largest peaks in the 430-455nm range also do not fit with our findings. The same reasoning can be applied to Xenon I, which presents its primary peaks in the 800-990nm range. The less significant peaks (such as 473.4nm and more in the 480-490nm range, as well as 395.1nm and 396.8nm) do not coincide with our findings.
+			
+			Thus, we claim that Mystery 215 is a Helium lamp.
+			
+			We know that Mystery 241 cannot be Helium I if Mystery 215 is, as the spectra are vastly different from each other. The noise in the 500-600nm range makes it difficult to use this section for identifying missing (or present) faint peaks, so this segment will only be used as a last resort.
+
+			Xenon I seems unlikely given the missing moderate peaks in the 470-500nm range. Despite that, most peaks seem to align in the 750-820nm range within a few nm, except for the 796.7nm peak (at least 10nm away from the nearest peak in Mystery 241). Later peaks in the 850-900nm range do not fit particularly strongly. The 975.9nm peak we observe could correspond to the 979.97nm in NIST despite its very weak brightness compared to what is expected (which could be due to CCD sensors having limited sensitivity at higher wavelengths, hence also why the 992.3nm peak seems to be missing in our spectrum). Next, we are missing all peaks in the 350-380nm range for Neon I, but this might be for similar reasons as not noticing the peaks near 1000nm in Xenon I. These peaks are also noticeable quieter than others; in fact, Neon I does have the vast majority of its bright peaks in the 750-850nm region, which the centroids approximate within a few nm, and some slightly quieter peaks until 900nm which we also notice in our plot. All in all, Neon I is a strong candidate, but must consider other gases. Some Argon I peaks seem to fit particularly well, such as the strongest peak at centroid wavelength 811.323nm (listed as 811.5311nm on NIST) and the general quietness in the 350-700nm range. However other peaks do not fit as much: the 759.9nm centroid does not seem to be particularly near any NIST wavelengths (the nearest are 763.5nm and 751.46nm). This pattern of "missing" peaks also repeats with any other peaks in the 750-850nm region.
+
+			Krypton I immediately looks like the strongest fit: all centroids have a corresponding peak in the NIST database, with quiet peaks in the 420-450nm range, slightly brighter ones near 560nm and 585nm, and the largest peaks in the 750-850nm range. The 759.9nm centroid is particularly interesting, as it is technically between two very bright peaks in NIST, at 758.7nm and 760.2nm. Given the nm accuracy of the USB650 device, it is likely that these peaks were merged in measurements, leading to a centroid between the two! The only exceptions to accurate correspondence are in the 950+nm range, which we have argued previously was likely due to CCDs not measuring these ranges particularly well.
+			
+			Overall, while Neon I and Argon I being strong candidates, we claim that Mystery 241 is a Krypton lamp; some of the discrepancies outside of the edge wavelength ranges in Neon I and Argon I make them weaker candidates than Krypton, where nearly all peaks align to the exception of those in the edge ranges.
+			
+			\begin{figure}
+				\plotone{31-residuals-full.png}
+				\caption{Calibration of the USB650 spectrograph using Hydrogen (magenta), Helium (yellow) and Krypton (purple) peaks. The top plot shows the expected wavelength from the gas peaks against our estimated pixel location (with Gaussian fitting for Hydrogen and centroids for Helium and Krypton). A linear and quadratic best-fit are plotted on the data. The bottom plot shows the residuals of individual points using both best-fit functions.}
+				\label{fig:31-cal-full}
+			\end{figure}
+			
+			With this, we can also come back to our original calibration from Section~\ref{ssec:USB650-cal} and refit using our additional points. We identify the peaks and their estimated pixel location with a centroid calculation (see Appendix~\ref{code:centroid} for the method). Figure~\ref{fig:31-cal-full} presents our recalibration of the USB650 spectrograph using our additional data from the expected peaks and centroids of Mystery 215 (Helium) and Mystery 241 (Krypton). While we plot a linear and quadratic fit, the scatter seems to be extremely linear (on par with the 651 pixels for 651 wavelength values between 350nm and 1000nm), with which we obtain a final calibration function (with standard errors from the covariance matrix from \texttt{numpy.polyfit}) of:
+			\begin{equation}\label{eq:31-cal-final}
+				L_{all} = (0.9996 \pm 0.0003)x + 350.0941 \pm 0.0848
+			\end{equation}
+			
+		\subsection{Telescope Data Plotting and Comparison}\label{ssec:telescope-data}
+		
+			Figure~\ref{fig:stars} shows our final spectra for all objects we measured, post-processing and pixel-to-wavelength calibration. The main portion of the code for the data processing (dakr and sky subtraction, flat frame division) is given in Appendix~\ref{code:LISA}.	The y-axis is the intensity of the signal divided by the maximum signal in all objects with an added offset (horizontal dashed lines), and the x-axis is the wavelength range of our spectra, in Å. The objects are ordered	by star type (AFGKM top to bottom). The expected Hydrogen Balmer lines are given as vertical dashed lines, and our actual measurements of them as dotted lines. We also include the airglow vertical line ([O~I], 5577Å), and measured Oxygen lines as dash-dotted vertical lines.
+			
+			\begin{figure}
+				\plotone{stars.png}
+				\caption{Spectra of Vega, Caph, Sun, Aljanah, and Scheat. Spectra were global-maximum-normalized and calibrated to wavelength values using Equation~\ref{eq:telescope-fit}.}
+				\label{fig:stars}
+			\end{figure}
+			
+			Note that the Moon is considered a G-type star in our analysis as the Moon reflects the light of our Sun, which is a G-type star. The AF stars (Vega and Caph) have the most noticeable Hydrogen absorbption lines, with some additional lines near the left end of the plot which could be from other elements, namely Calcium. The Hydrogen lines are also visible with the Sun, although slightly shifted to the left compared to Vega and Caph.
+			
+			Hydrogen lines are also visible and stronger in Aljanah (K star) relative to the total amplitude of its spectrum compared to AFG stars. This could be due to Aljanah still being in pure Hydrogen burning and has not yet started Helium burning.
+			
+			Scheat's spectrum is very different from all others, starting with the fact that it has a much less clear peak. This is because of blackbody radiation: the higher the temperature, the lower the wavelength of the peak and the more intense the peak.
+			
+			We also notice some consistent Oxygen lines throughout all spectra in the 6600-6950Å range. There is however no significant airglow peak on any of our spectra.
+			
+			We can calculate each star's effective temperature using Wien's displacement law, Equation~\ref{eq:wien}, and obtain the following results: 7183K (Vega), 7184K (Caph), 7157K (Sun via Moon), 7155K (Aljanah), 6115K (Scheat).
+
+		We can also estimate the resolving power of the spectrograph at various points, using Equation~\ref{eq:R}. We select the peaks on our spectrum with centroids recalculated specifically for resolving power calculations at 4550.9Å, 5014.6Å, 5852.2Å, 6510.2Å, and 7017.9Å. The results we obtain are presented in Table~\ref{tab:R}.
+		\begin{deluxetable}{c|c}[t]
+				\tablecaption{Wavelength and associated Resolving Power of the LISA Spectrograph.
+				\label{tab:R}}
+				\tablehead{
+				\colhead{\textbf{Wavelength (Å)}} \vline & \colhead{\textbf{Resolving Power R}}
+				}
+				\startdata
+				4550.9	&	1001.6	\\
+				5014.6	&	760.3		\\
+				5852.2	&	765.9		\\
+				6510.2	&	1092.1	\\
+				7017.9	&	1334.2	\\
+				\enddata
+			\end{deluxetable}	
+
+  \section{Discussion}\label{sec:disc}
+  
+  	\subsection{USB650 Indoor Experiments}\label{ssec:usb650-disc}
+  	
+  		All in all, the experiments with the USB650 spectrograph concluded strongly: we were able to calibrate the spectrograph appropriately using Hydrogen lines, identify both Mystery gases as Helium (Mystery 215) and Krypton (Mystery 241), and use these new emission spectra to recalibrate the spectrograph, which resulted in a very similar linear fit. Other spectra were also well acquired, although the uncertainties of the incandescent and sunlight spectra leave to be desired.
+  		
+  		During our measurements of the incandescent light spectrum, we noticed that the peaks in the OceanView software were repeatedly shifting vertically. It is possible that lights in the room were flickering at a certain frequency too far from our exposure time, affecting the amplitude of the spectrum. This suggestion is strengthened by the fact that changing the exposure time affected the shifting effect drastically. We ensured to pick an exposure time that minimized this effect, and it is important to keep in mind for future measurements as a source of random error.
+  		
+  		The sunlight spectrum also has moderately large uncertainties compared to other spectra because of how the data was recorded: we did not take the foam case in which we had previously secured the spectrograph outdoors, meaning that one of our group members had to handhold the spectrograph. We ensured that there was minimal movement and that a longer exposure time of 1 second could counteract this, but it is still a source of random error. It should also be noted that this spectrum could not be dark-subtracted, which also creates an additional and unremovable random error. The best way to counterbalance this error is to ensure that the S/N ratio is very high.
+  		
+  		We can however notice that our final calibration formula (Equation~\ref{eq:31-cal-final}) has higher standard error values than the ones only obtained with Hydrogen lines (Equations~\ref{eq:31-cal-H3}, \ref{eq:31-cal-H4}). While this may seem surprising at first, there might be multiple causes at play. First, it is possible that the estimated pixel location of some of the peaks has some random error, due to centroid calculations only being given a few points to estimate a peak location because of the limited precision of the USB650 spectrograph. Second, we used multiple peak estimation methods: Hydrogen peaks were estimated with Gaussian fitting, while Helium and Krypton ones were calculated with centroid operations. This difference in methods creates an additional random error in the peak locations, which could be mitigated if a singular method was used for all points.
+  		
+		\subsection{LISA Spectrograph and Telescope Measurements and Processing}\label{ssec:telescope-disc}
+  
+  		This section of the lab was by far the most complicated, and certainly has flaws needing to be discussed.
+  		
+  		First of all, while our observation plan was neatly organized, we performed a significant amount of work outside of our planned timing on our observation night for multiple reasons. First, we were not aware that calibration frames (Ne/Ar spectrum, dark frames, flat frames) were recorded during the last 15 minutes of our time slot, which shifted many of our measurements earlier. Second, there were delays in obtaining the first data points, with most of our observations beginning circa 20:00 EDT (as opposed to the originally-planned 19:40 EDT). Third, we decided to switch our targets during our time slot: we measured Vega (our backup A-type star) first because of the much shorter integration time needed, then allowing us to adjust our other exposure times to avoid saturation and maintain strong enough signals; we planned to measure Aljanah too early, as we had to wait for its altitude to be below 80 degrees to measure it; and the Moon was originally not one of our targets, but was rather added because of its use in obtaining a G-type star spectrum with the Sun, allowing for a more complete analysis of the evolution of spectra through star types.
+  
+  		We noticed as well that the AF stars' hydrogen lines were right-shifted compared to other spectra, especially the Moon. This is most likely due to dust, which redshifts spectra. There is very little distance between us and the Moon, so dust plays little role with the Sun's spectrum, but we are significantly farther away from Vega and Caph, meaning that dust can be more significant in resdhifting the stars' spectra.
+  		
+  		One of the core issues with our data processing however is the pixel-to-wavelength calibration. It is very likely that peaks in the Ne/Ar spectrum were not properly identified. This is especially noticeable with our Hydrogen Balmer lines being very distant from their expected wavelengths, and the fact that this distance increases from the edges of the spectra to their centre. The potential Calcium lines in Vega should also be located at 3820Å and 3934Å, which is below our calibrated range, further indicating the likeliness that our calibration is incorrect. Our estimated effective temperatures also suggest a similar flaw, as Vege should have a temperature near 9400K, Caph near 6700K, our Sun near 5700K, Aljanah near 4600K and Scheat near 3600K. The overestimation of all temperatures except Vega's is most likely due to the incorrect calibration shifting spectra closer to the left of the plot (similar to Hydrogen lines), and Vega's underestimation would be due to the incorrect range of wavelengths caused by our flawed calibration: Vega's peak should be near 3085Å using Wien's Law (Equation~\ref{eq:wien}), which is extremely far from our lower bound of 4029Å. The incorrect calibration is a source of evolving systematic error: it is likely that the points in the first 600 pixels were identified properly as they were in a range close to points given to us in the Week 3 Lab, but that later peaks' wavelengths were overestimated, leading to an increasing systematic error with increasing x-pixel value.
+  	
+  		The main reasons for this incorrectness are the time constraints of finding the appropriate peaks, especially without prior background in spectrograph calibration; not knowing what the main peaks of the Ne/Ar spectrum are and not being able to completely trust the relative intensities in the NIST Atomic Spectra Database rendered the task extremely time-consuming and complex. The solution to this is to acquire more experience with this type of task.
+  		
+  		The resolving power values in Table~\ref{tab:R} seem within the expected range (\~400-1000), and the larger values at either wavelength edge is explained by the fact that our calibration function becomes flatter in these ranges, meaning that more pixels cover a wavelength segment and we can therefore distinguish peaks much closer together. This conclusion falls short however because of the very likely incorrect calibration function; R values would have to be calculated again if the calibration function was meliorated.
+  		
+  		Finally, we do not notice a particularly strong airglow line anywhere near the expected airglow wavelength (5577Å). This is likely due to the fact that our observed objects had a very high altitude to the exception of the Moon, between 60-80 degrees (see Table~\ref{tab:obs-log}). Higher altitude means lower airmass ($\propto \frac{1}{\cos{\text{(altitude)}}}$), meaning a less visible airglow line. It is also possible that the airglow line was mitigated by our sky subtraction on every spectrum, as the sky also contains the airglow line. This would explain why the line is not visible on the Moon's spectrum, and on any other spectrum either.
+  		
+  		Future work might focus on acquiring spectra from Type-O and Type-B stars, which we did not measure during our observation night. This would allow for a deeper analysis of the changes in spectra between star types. Future work could also consider using special objects other than the reflection of a star. Other objects such as M31 might have spectra with larger differences than there are between star types, which could be an interesting point of discussion.
+
+	\begin{contribution}
+	
+		Data collection through OceanView, cleanup, and preparation for programming during the indoor labs was performed by Luna, who also created the framework code for calibration with hydrogen emission lines and mystery gas identification (shared with all other group members). Setup during these indoor labs was performed by Cooper, Ömer, and Guillaume. Ömer also set up the sensor for sunlight data collection, and Cooper developed alternate coding solutions for both indoor lamps and telescope data. 
+		
+		The observation sheet was created by Luna, and all members of the group added their own candidates in each category. Telescope software was handled by Ömer with oversight from other members, who also took notes of the exposure times, altitude, and weather condition. The observation sheet was updated with actual targets by Luna.
+		
+		All of the code for this report was written by Luna, and shared with other members of the group in the group's GitHub repository\footnote{\href{https://github.com/flypt7/AST326-Practicals}{https://github.com/flypt7/AST326-Practicals}}.
+		
+		All members prepared their own sections in the group presentation slideshow, and presented them.
+	
+		No generative AI was used at any point in the code writing for this report, or for the report itself.
+	\end{contribution}
+	
+	\newpage
+  \appendix
+ 		\section{Gaussian Peak Estimation}\label{code:gauss}
+ 		
+ 		Below is the code used to plot the Gaussian-estimated peaks of Balmer Series lines from our USB650 spectrograph measurements. \texttt{ranges} is an array of index ranges for each peak used in the Gaussian fit estimation. \texttt{params} is an array of parameters obtained from \texttt{scipy.optimize.curve\_fit}. \texttt{expected} is an array containing all expected Balmer Series peak wavelengths. \texttt{plt} is an import of \texttt{matplotlib.pyplot}. The output of the code is also included below it.
+ 		
+	 		\begin{verbatim}
+def gauss(x_arr, amp, mu, sd):
+    """
+    Return Gaussian distribution of x_arr with mean mu, standard 
+    deviation sd, and amplifier amp.
+    """
+    return (amp**4) * (np.exp(-0.5 * ((x_arr - mu)/sd)**2)/(sd * (2*np.pi)**0.5))
+
+
+fig, axs = plt.subplots(2, 2)
+plt.subplots_adjust(bottom=0, right=1.5, top=1.5, wspace=0.3, hspace=0.3)
+
+peak_indices = []
+peak_mags = []
+
+axs[0][0].set_xlim(50, 71)
+axs[0][1].set_xlim(74, 95)
+axs[1][0].set_xlim(126, 147)
+axs[1][1].set_xlim(296, 317)
+
+for i in range(len(ranges[0])):
+    peak = mean_calibrated[ranges[0][i]:ranges[1][i]]
+    index = np.arange(ranges[0][i], ranges[1][i], 1)
+    
+    axs[i//2][i%2].scatter(index, peak, color="#785EF0")
+    
+    amp = params[i][0]
+    mu = params[i][1]    
+    
+    overplot_range = np.arange(ranges[0][i], ranges[1][i], 0.1)
+        
+    sd = params[i][2]
+    axs[i//2][i%2].plot(overplot_range, gauss(overplot_range, amp, mu, sd), 
+    																				color="#FFB000", label="Gaussian fit")
+    axs[i//2][i%2].axvline(mu, color="#DC267F", label=f"Centre: {round(mu, 3)}")
+
+    axs[i//2][i%2].set_xticks([i for i in index if i%2 == 0])
+    axs[i//2][i%2].grid(alpha=0.3)
+
+    axs[i//2][i%2].set_title(f"Focus on Peak {i+1} of H light (expected {expected[i]} nm)")
+    axs[i//2][i%2].set_xlabel("Pixel Index")
+    axs[i//2][i%2].set_ylabel("Amplitude (ADU)")
+
+    axs[i//2][i%2].legend()
+
+    peak_indices.append(mu)
+    peak_mags.append(gauss(mu, amp, mu, sd))
+	 		
+	 		\end{verbatim}
+	 		
+	 		\begin{figure*}[h]
+				\plotone{H_peaks.png}
+				\caption{Gaussian-distribution estimated Hydrogen peaks from USB650 spectrograph measurements.}
+				\label{fig:H-peaks}
+			\end{figure*}
+ 	
+  	\section{Centroid Method}\label{code:centroid}
+  	
+  		Below is the method used for calculating centroids using index values (\texttt{x\_arr}) and intensity at these indices (\texttt{data}). Centroids are calculated as a weighted average of indices based on their intensity, with the final result being the solution to the Equation~\ref{eq:centroid}.
+ 
+  		\begin{verbatim}
+def centroid(x_arr, data):
+		"""
+		return the centroid of data over x_arr. x_arr and data must be the same length
+		"""
+		w_sum = 0
+		tot_data = 0
+	    
+		for point in range(len(x_arr)):
+				w_sum += x_arr[point] * data[point]
+				tot_data += data[point]
+	    
+		centroid = w_sum / tot_data
+		return centroid
+  		\end{verbatim}
+  		
+	\section{LISA Spectrograph Science Frame Cleaning}\label{code:LISA}
+		
+		Below is the main portion of the code for dark-and-sky subtracting from science frame, and dividing by the median-normalized dark-subtracted flat frame. This code is mostly based on the code provided during the Week 3 Lab, to which was added all frame processing. The portions of code performing checks on the straightness of the spectra has been omitted, and can be found in the full code in the GitHub repository for this group's practicals,\footnote{\href{https://github.com/flypt7/AST326-Practicals}{https://github.com/flypt7/AST326-Practicals}} in the main branch's \texttt{P2/code/stars.ipynb} file. This code is then followed by calibration using the cubic fit we estimate, and by spectra plots shown in Figure~\ref{fig:stars}.
+		
+		\texttt{objs} is an array containing directory names of each object we measured. \texttt{trace\_y} used to identify which pixels are within the aperture halfwidths of each object is determined in the omitted code determining the straightness of the spectra.
+		
+		\begin{verbatim}
+for obj in objs:
+    slopes = []
+    intercepts = []
+    raw_data = [] # array for storing raw fits data from all trials of each object (iterated)
+    
+    with open(f"{obj}/files.txt") as f:
+        for file in f.readlines():
+            hdul = fits.open(f"{obj}/{file}".strip())
+            raw_data.append(hdul[0].data.astype(float)) # take raw data
+            hdul.close()
+    
+    raw_data = np.array(raw_data) # convert to numpy array for average calculation
+    
+    raw_data -= avg_dark[i] # dark subtraction
+
+    for data in raw_data:
+        row_prof = np.median(data, axis=1)
+        y = np.arange(data.shape[0])
+
+
+    [CODE OMITTED: verification of ''straightness'' of star spectra using Gaussian-
+    estimated location of bins along the x-axis and linear curve fitting]
+
+        
+    # By eye guess what aperture halfwidth is
+    # (note that the moon uses an arbitrary 30 pixels because of the fact that it covered 
+    # the entire slit -> no proper HW)
+    aperture_halfwidths = [10, 15, 30, 15, 10] # in pixels, for each object
+
+    # Sky subtraction
+    sky_top = []
+    sky_bottom = []
+    
+    # select data from each frame using the aperture halwidth
+    x_cols = np.arange(ncols)
+    selected_data = []
+    for i in range(len(raw_data)):
+        # Calculate trace 
+        trace_y = slopes[i] * x_cols + intercepts[i]
+        trace_sky_top = slopes[i] * x_cols + intercepts[i] + 2*aperture_halfwidths[i]
+        trace_sky_bottom = slopes[i] * x_cols + intercepts[i] - 2*aperture_halfwidths[i]
+        
+        selected_data.append(np.abs(y[:, None] - trace_y[None, :]) <= aperture_halfwidths[i])
+        sky_top.append(np.abs(y[:, None] - trace_sky_top[None, :]) <= aperture_halfwidths[i])
+        sky_bottom.append(np.abs(y[:, None] - trace_sky_top[None, :]) <= aperture_halfwidths[i])
+
+    selected_data = np.array(selected_data)
+    
+    sky_top = np.array(sky_top)
+    sky_bottom = np.array(sky_bottom)
+    
+    # zero out data outside of aperture
+    dark_sub_spectra.append(np.where(selected_data, data, 0).sum(axis=1))
+    sky_frames_top.append(np.where(sky_top, data, 0).sum(axis=1))
+    sky_frames_bottom.append(np.where(sky_bottom, data, 0).sum(axis=1))
+    
+    i += 1
+    
+# median combine selected spectra
+dark_sub_spectra = np.array(dark_sub_spectra)
+
+median_spectra = []
+median_sky_top = []
+median_sky_bottom = []
+
+for obj_spectra in dark_sub_spectra:
+    median_spectra.append(np.median(obj_spectra, axis=0))
+
+for sky_top in sky_frames_top:
+    median_sky_top.append(np.median(sky_top, axis=0))
+    
+for sky_bottom in sky_frames_bottom:
+    median_sky_bottom.append(np.median(sky_bottom, axis=0))
+
+median_sky_top = np.array(median_sky_top)
+median_sky_bottom = np.array(median_sky_bottom)
+
+median_sky_stack = np.stack([median_sky_top, median_sky_bottom])
+
+median_sky = np.median(median_sky_stack, axis=0)
+median_spectra = np.array(median_spectra)
+nosky_spectra = median_spectra - median_sky # science - median sky - dark
+
+# flag to determine if flat division has occurred (to avoid Jupyter cell 
+# doing this division running twice+)
+flat_reduced = 0 
+
+
+[CODE OMITTED: verification of ''straightness'' of flat frames using Gaussian-estimated location 
+of bins along the x-axis and linear curve fitting]
+
+
+# By eye guess what aperture halfwidth is
+flat_halfwidth = 150 # in pixels, guarantees we don't have negative values because of dark subtraction
+
+# select data from each frame using the aperture halwidth
+x_cols = np.arange(ncols)
+
+# Calculate trace 
+trace_y = flat_slope * x_cols + flat_intercept
+selected_flat_data = np.abs(y[:, None] - trace_y[None, :]) <= flat_halfwidth
+
+selected_flat_data = np.array(selected_flat_data)
+
+# zero out data outside of aperture
+flat_spectrum = np.where(selected_flat_data, dark_sub_flat, 0).sum(axis=0) 
+
+# normalize the flat
+flat_med = np.median(flat_spectrum)
+
+master_flat = flat_spectrum / flat_med
+
+if flat_reduced == 0:
+    for spectrum in nosky_spectra:
+        spectrum /= master_flat
+    flat_reduced = 1
+
+		\end{verbatim}
+
+\end{document}
