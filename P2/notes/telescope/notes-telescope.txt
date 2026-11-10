@@ -1,0 +1,4 @@
+All filenames give time -> can get LST
+Exposure time also given in filename
+
+Altitude verified per measurement, included to 1dp in the observation sheet

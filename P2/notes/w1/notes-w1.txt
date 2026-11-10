@@ -1,4 +1,9 @@
 completed 3.1.1 data measurements (see P2/code/311)
 took pictures of setups, and screen captures of initial measurements of hydrogen at 100ms and mystery241 at 100ms(?)
     screen captures are in the same directory as this file
-    TODO: photos should be added here too!
+
+pro: collected all data, got consistent view with no displacement thanks to our unique setup (vertical for the
+tube lamp!)
+
+con: noise - tubes are see through, didn't have consistent background (other students, other lights turned on...)
+        = inconsistent noise measurements between tubes, but consistent within each trial for one tube
